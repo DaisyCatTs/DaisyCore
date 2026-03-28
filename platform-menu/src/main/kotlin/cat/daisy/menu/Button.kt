@@ -1,13 +1,12 @@
 package cat.daisy.menu
 
+import cat.daisy.item.DaisyViewerText
 import cat.daisy.menu.text.DaisyText
 import cat.daisy.text.DaisyMessages
 import cat.daisy.text.withPlaceholders
 import net.kyori.adventure.text.Component
 import org.bukkit.Material
 import org.bukkit.NamespacedKey
-import org.bukkit.OfflinePlayer
-import org.bukkit.Bukkit
 import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -16,7 +15,6 @@ import org.bukkit.inventory.ItemStack
 import org.bukkit.inventory.meta.SkullMeta
 import org.bukkit.persistence.PersistentDataType
 import java.util.UUID
-import java.lang.reflect.Method
 
 /**
  * Immutable static slot helper.
@@ -76,7 +74,7 @@ public class ItemBuilder(
         text: String,
         viewer: Player,
     ) {
-        name = resolveViewerPlaceholders(text, viewer)
+        name = DaisyViewerText.render(text, viewer)
         nameComponent = null
     }
 
@@ -108,7 +106,7 @@ public class ItemBuilder(
         viewer: Player,
     ) {
         loreLines.clear()
-        loreLines += lines.map { cat.daisy.text.DaisyText.parse(resolveViewerPlaceholders(it, viewer)) }
+        loreLines += DaisyViewerText.render(lines, viewer).map(cat.daisy.text.DaisyText::parse)
     }
 
     public fun loreMm(
@@ -119,7 +117,7 @@ public class ItemBuilder(
         loreLines +=
             lines.map { line ->
                 if (viewer != null) {
-                    cat.daisy.text.DaisyText.parse(resolveViewerPlaceholders(line, viewer))
+                    cat.daisy.text.DaisyText.parse(DaisyViewerText.render(line, viewer))
                 } else {
                     DaisyText.run { line.mm() }
                 }
@@ -280,36 +278,6 @@ public fun button(
                 } ?: emptyList(),
         ),
     )
-
-private var placeholderMethod: Method? = null
-private var placeholderApiAvailable: Boolean? = null
-
-private fun resolveViewerPlaceholders(
-    input: String,
-    player: Player?,
-): String {
-    if (player == null) {
-        return input
-    }
-    val available =
-        placeholderApiAvailable ?: run {
-            val installed = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null
-            placeholderApiAvailable = installed
-            installed
-        }
-    if (!available) {
-        return input
-    }
-
-    val method =
-        placeholderMethod ?: runCatching {
-            Class.forName("me.clip.placeholderapi.PlaceholderAPI")
-                .getMethod("setPlaceholders", OfflinePlayer::class.java, String::class.java)
-        }.getOrNull().also { placeholderMethod = it }
-    return runCatching {
-        method?.invoke(null, player, input) as? String ?: input
-    }.getOrDefault(input)
-}
 
 public fun button(
     material: Material,

@@ -9,11 +9,7 @@ class DaisyCoreExamplePlugin : JavaPlugin() {
     override fun onEnable() {
         daisy =
             DaisyPlatform.create(this) {
-                text()
-                placeholders()
-                items()
-                scoreboards()
-                tablists()
+                messages(ExampleTextSource)
                 commands()
                 menus()
             }

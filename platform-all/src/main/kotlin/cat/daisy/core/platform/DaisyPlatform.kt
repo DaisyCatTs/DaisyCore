@@ -13,6 +13,8 @@ import cat.daisy.scoreboard.DaisyScoreboardPlatform
 import cat.daisy.scoreboard.DaisyScoreboardPlatformImpl
 import cat.daisy.tablist.DaisyTablistPlatform
 import cat.daisy.tablist.DaisyTablistPlatformImpl
+import cat.daisy.text.DaisyMessages
+import cat.daisy.text.DaisyTextSource
 import org.bukkit.plugin.Plugin
 import org.bukkit.plugin.java.JavaPlugin
 
@@ -25,12 +27,14 @@ public class DaisyPlatform internal constructor(
     public val menus: DaisyMenuPlatform?,
     public val scoreboards: DaisyScoreboardPlatform?,
     public val tablists: DaisyTablistPlatform?,
+    public val messageSource: DaisyTextSource?,
 ) : DaisyHandle {
     override fun close() {
         tablists?.close()
         scoreboards?.close()
         menus?.close()
         commands?.close()
+        messageSource?.let { DaisyMessages.clear(plugin) }
         (runtime as? PaperDaisyRuntime)?.close()
     }
 
@@ -46,9 +50,15 @@ public class DaisyPlatformBuilder internal constructor(
     private val plugin: Plugin,
 ) {
     private val features = linkedSetOf<DaisyFeature>()
+    private var messageSource: DaisyTextSource? = null
 
     public fun text() {
         features += DaisyFeature.TEXT
+    }
+
+    public fun messages(source: DaisyTextSource) {
+        messageSource = source
+        text()
     }
 
     public fun placeholders() {
@@ -77,6 +87,7 @@ public class DaisyPlatformBuilder internal constructor(
 
     internal fun build(): DaisyPlatform {
         val runtime = PaperDaisyRuntime(plugin)
+        messageSource?.let { DaisyMessages.install(plugin, it) }
         val placeholderRegistry =
             if (
                 DaisyFeature.PLACEHOLDERS in features ||
@@ -110,18 +121,6 @@ public class DaisyPlatformBuilder internal constructor(
                 null
             }
 
-        val platform =
-            DaisyPlatform(
-                plugin = plugin,
-                features = features.toSet(),
-                runtime = runtime,
-                placeholders = placeholderRegistry,
-                commands = null,
-                menus = menus,
-                scoreboards = scoreboards,
-                tablists = tablists,
-            )
-
         val commands =
             if (DaisyFeature.COMMANDS in features && plugin is JavaPlugin) {
                 plugin.autoLoadDaisyCommands()
@@ -138,6 +137,7 @@ public class DaisyPlatformBuilder internal constructor(
             menus = menus,
             scoreboards = scoreboards,
             tablists = tablists,
+            messageSource = messageSource,
         )
     }
 }
