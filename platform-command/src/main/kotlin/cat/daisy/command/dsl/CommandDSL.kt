@@ -2,6 +2,7 @@
 
 package cat.daisy.command.dsl
 
+import cat.daisy.command.DaisyCommandAvailabilityContext
 import cat.daisy.command.arguments.ArgumentKind
 import cat.daisy.command.arguments.ArgumentRef
 import cat.daisy.command.arguments.CompiledArgument
@@ -68,6 +69,7 @@ class CommandBuilder internal constructor(
     private var senderConstraint: SenderConstraint = SenderConstraint.ANY
     private var cooldown: CooldownSpec? = null
     private var handler: HandlerSpec? = null
+    private var availability: DaisyCommandAvailabilityContext.() -> Boolean = { true }
     private val requirements = mutableListOf<RequirementSpec>()
     private val children = mutableListOf<CommandBuilder>()
     private val arguments = mutableListOf<MutableArgumentDefinition>()
@@ -105,6 +107,14 @@ class CommandBuilder internal constructor(
         predicate: CommandContext.() -> Boolean,
     ) {
         requirements += RequirementSpec(message, predicate)
+    }
+
+    fun enabled(predicate: DaisyCommandAvailabilityContext.() -> Boolean) {
+        availability = predicate
+    }
+
+    fun ignore(value: Boolean = true) {
+        availability = if (value) ({ false }) else ({ true })
     }
 
     fun sub(
@@ -309,6 +319,7 @@ class CommandBuilder internal constructor(
             name = name,
             description = description,
             aliases = aliases.toList(),
+            availability = availability,
             permission = permission,
             senderConstraint = senderConstraint,
             cooldown = cooldown,
@@ -324,6 +335,7 @@ class CommandBuilder internal constructor(
             name = name,
             description = description,
             aliases = aliases.toList(),
+            availability = availability,
             permission = permission,
             senderConstraint = senderConstraint,
             cooldown = cooldown,

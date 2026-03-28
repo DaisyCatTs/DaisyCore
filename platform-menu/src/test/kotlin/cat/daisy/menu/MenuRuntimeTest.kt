@@ -1,8 +1,8 @@
 package cat.daisy.menu
 
-import be.seeseemelk.mockbukkit.MockBukkit
-import be.seeseemelk.mockbukkit.ServerMock
-import be.seeseemelk.mockbukkit.entity.PlayerMock
+import org.mockbukkit.mockbukkit.MockBukkit
+import org.mockbukkit.mockbukkit.ServerMock
+import org.mockbukkit.mockbukkit.entity.PlayerMock
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Material
 import org.bukkit.event.inventory.ClickType
@@ -21,7 +21,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-@Disabled("MockBukkit tag bootstrap is currently incompatible with the DaisyCore Paper test stack.")
+@Disabled("MockBukkit registry bootstrap is incompatible with the current Paper API stack; covered by DaisyCore-native menu tests.")
 class MenuRuntimeTest {
     private lateinit var server: ServerMock
     private lateinit var plugin: Plugin

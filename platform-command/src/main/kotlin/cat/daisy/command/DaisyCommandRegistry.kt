@@ -17,19 +17,31 @@ public class AutoLoadingDaisyCommandRegistry internal constructor(
     private val plugin: JavaPlugin,
 ) : DaisyCommandRegistry {
     private var loadedCommands: List<DaisyCommand> = emptyList()
+    private var registered: Boolean = false
 
     override val commands: List<DaisyCommand>
         get() = loadedCommands
 
     override fun reload() {
-        loadedCommands = DaisyCommandDiscovery.discover(plugin).sortedBy(DaisyCommand::name)
+        val discovered = DaisyCommandDiscovery.discover(plugin).sortedBy(DaisyCommand::name)
+        if (registered) {
+            if (discovered != loadedCommands) {
+                plugin.logger.warning("Daisy command reload refreshed discovery state, but Paper command registrations require a full plugin reload to replace safely.")
+            }
+            loadedCommands = discovered
+            return
+        }
+
+        loadedCommands = discovered
         if (loadedCommands.isNotEmpty()) {
             plugin.registerCommands(*loadedCommands.toTypedArray())
+            registered = true
         }
     }
 
     override fun close() {
         loadedCommands = emptyList()
+        registered = false
     }
 }
 
