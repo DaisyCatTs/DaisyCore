@@ -8,7 +8,6 @@ import cat.daisy.text.DaisyText
 import cat.daisy.text.DaisyTextRenderer
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
-import org.bukkit.ChatColor
 import org.bukkit.entity.Player
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
@@ -25,23 +24,7 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 private val SIDEBAR_ENTRIES: List<String> =
-    listOf(
-        "${ChatColor.BLACK}",
-        "${ChatColor.DARK_BLUE}",
-        "${ChatColor.DARK_GREEN}",
-        "${ChatColor.DARK_AQUA}",
-        "${ChatColor.DARK_RED}",
-        "${ChatColor.DARK_PURPLE}",
-        "${ChatColor.GOLD}",
-        "${ChatColor.GRAY}",
-        "${ChatColor.DARK_GRAY}",
-        "${ChatColor.BLUE}",
-        "${ChatColor.GREEN}",
-        "${ChatColor.AQUA}",
-        "${ChatColor.RED}",
-        "${ChatColor.LIGHT_PURPLE}",
-        "${ChatColor.YELLOW}",
-    )
+    (0..14).map { "\u00A7${it.toString(16)}" }
 
 public data class DaisySidebarLine(
     val key: String,

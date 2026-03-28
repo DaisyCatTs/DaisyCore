@@ -17,10 +17,6 @@ import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-public data class DaisyTablistNameSpec(
-    val format: ((viewer: Player, target: Player, context: DaisyTablistRenderContext) -> Component)? = null,
-)
-
 public data class DaisyTablistOptions(
     val updateInterval: Duration = Duration.ofSeconds(1),
     val autoRefresh: Boolean = true,
@@ -29,7 +25,6 @@ public data class DaisyTablistOptions(
 public data class DaisyTablist(
     val header: DaisyTextRenderer<DaisyTablistRenderContext>? = null,
     val footer: DaisyTextRenderer<DaisyTablistRenderContext>? = null,
-    val names: DaisyTablistNameSpec? = null,
     val options: DaisyTablistOptions = DaisyTablistOptions(),
 )
 
@@ -74,20 +69,9 @@ public class DaisyTablistOptionsBuilder internal constructor(
     internal fun build(): DaisyTablistOptions = current
 }
 
-public class DaisyTablistNamesBuilder {
-    private var formatter: ((viewer: Player, target: Player, context: DaisyTablistRenderContext) -> Component)? = null
-
-    public fun format(block: (viewer: Player, target: Player, context: DaisyTablistRenderContext) -> Component) {
-        formatter = block
-    }
-
-    internal fun build(): DaisyTablistNameSpec = DaisyTablistNameSpec(formatter)
-}
-
 public class DaisyTablistBuilder {
     private var header: DaisyTextRenderer<DaisyTablistRenderContext>? = null
     private var footer: DaisyTextRenderer<DaisyTablistRenderContext>? = null
-    private var names: DaisyTablistNameSpec? = null
     private var options = DaisyTablistOptions()
 
     public fun header(renderer: DaisyTextRenderer<DaisyTablistRenderContext>) {
@@ -98,15 +82,11 @@ public class DaisyTablistBuilder {
         footer = renderer
     }
 
-    public fun names(block: DaisyTablistNamesBuilder.() -> Unit) {
-        names = DaisyTablistNamesBuilder().apply(block).build()
-    }
-
     public fun options(block: DaisyTablistOptionsBuilder.() -> Unit) {
         options = DaisyTablistOptionsBuilder(options).apply(block).build()
     }
 
-    internal fun build(): DaisyTablist = DaisyTablist(header = header, footer = footer, names = names, options = options)
+    internal fun build(): DaisyTablist = DaisyTablist(header = header, footer = footer, options = options)
 }
 
 public fun tablist(block: DaisyTablistBuilder.() -> Unit): DaisyTablist = DaisyTablistBuilder().apply(block).build()

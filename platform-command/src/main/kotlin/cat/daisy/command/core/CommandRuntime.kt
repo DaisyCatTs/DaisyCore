@@ -2,6 +2,7 @@
 
 package cat.daisy.command.core
 
+import cat.daisy.command.DaisyCommandAvailabilityContext
 import cat.daisy.command.arguments.ArgumentKind
 import cat.daisy.command.arguments.BukkitPlatform
 import cat.daisy.command.arguments.CompiledArgument
@@ -62,6 +63,7 @@ internal data class CommandNodeSpec(
     val name: String,
     val description: String,
     val aliases: List<String>,
+    val availability: DaisyCommandAvailabilityContext.() -> Boolean,
     val permission: String?,
     val senderConstraint: SenderConstraint,
     val cooldown: CooldownSpec?,
@@ -75,6 +77,7 @@ class CommandSpec internal constructor(
     val name: String,
     val description: String,
     val aliases: List<String>,
+    internal val availability: DaisyCommandAvailabilityContext.() -> Boolean,
     internal val permission: String?,
     internal val senderConstraint: SenderConstraint,
     internal val cooldown: CooldownSpec?,
@@ -239,6 +242,7 @@ private object CommandCompiler {
                 name = spec.name,
                 description = spec.description,
                 aliases = spec.aliases,
+                availability = spec.availability,
                 permission = spec.permission,
                 senderConstraint = spec.senderConstraint,
                 cooldown = spec.cooldown,

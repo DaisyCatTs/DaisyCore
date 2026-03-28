@@ -2,6 +2,7 @@
 
 package cat.daisy.command.core
 
+import cat.daisy.command.DaisyCommandAvailabilityContext
 import cat.daisy.command.dsl.CommandSetBuilder
 import io.papermc.paper.command.brigadier.BasicCommand
 import io.papermc.paper.command.brigadier.CommandSourceStack
@@ -21,9 +22,10 @@ private fun JavaPlugin.registerCompiled(
     commands: List<CommandSpec>,
     config: DaisyConfig,
 ) {
-    validateRootKeys(commands)
+    val activeCommands = CommandAvailabilityFilter.filter(commands, DaisyCommandAvailabilityContext(this))
+    validateRootKeys(activeCommands)
     val runtime = CommandRuntime(logger = logger, config = config)
-    for (command in commands) {
+    for (command in activeCommands) {
         val compiled = command.compiled
         registerCommand(command.name, command.description, command.aliases, PaperCommandAdapter(compiled, runtime))
     }
@@ -36,6 +38,57 @@ private fun validateRootKeys(commands: List<CommandSpec>) {
         for (alias in command.aliases) {
             registerRootKey(keys, alias, command.name)
         }
+    }
+}
+
+internal object CommandAvailabilityFilter {
+    fun filter(
+        commands: List<CommandSpec>,
+        context: DaisyCommandAvailabilityContext,
+    ): List<CommandSpec> = commands.mapNotNull { filterCommand(it, context) }
+
+    private fun filterCommand(
+        command: CommandSpec,
+        context: DaisyCommandAvailabilityContext,
+    ): CommandSpec? {
+        if (!command.availability(context)) {
+            return null
+        }
+
+        val filteredChildren = command.children.mapNotNull { filterNode(it, context) }
+        if (command.handler == null && filteredChildren.isEmpty()) {
+            return null
+        }
+
+        return CommandSpec(
+            name = command.name,
+            description = command.description,
+            aliases = command.aliases,
+            availability = command.availability,
+            permission = command.permission,
+            senderConstraint = command.senderConstraint,
+            cooldown = command.cooldown,
+            arguments = command.arguments,
+            requirements = command.requirements,
+            children = filteredChildren,
+            handler = command.handler,
+        )
+    }
+
+    private fun filterNode(
+        node: CommandNodeSpec,
+        context: DaisyCommandAvailabilityContext,
+    ): CommandNodeSpec? {
+        if (!node.availability(context)) {
+            return null
+        }
+
+        val filteredChildren = node.children.mapNotNull { filterNode(it, context) }
+        if (node.handler == null && filteredChildren.isEmpty()) {
+            return null
+        }
+
+        return node.copy(children = filteredChildren)
     }
 }
 
