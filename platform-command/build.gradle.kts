@@ -7,5 +7,5 @@ dependencies {
     api(project(":platform-runtime"))
     api(project(":platform-text"))
     implementation(project(":platform-placeholders"))
-    testImplementation("org.mockito:mockito-core:5.20.0")
+    testImplementation("org.mockito:mockito-core:5.23.0")
 }
