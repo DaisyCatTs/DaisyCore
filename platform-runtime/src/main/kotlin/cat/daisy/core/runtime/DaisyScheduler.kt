@@ -10,4 +10,11 @@ public interface DaisyScheduler {
         delay: Duration,
         task: () -> Unit,
     ): DaisyHandle
+
+    public fun repeating(
+        period: Duration,
+        task: () -> Unit,
+    ): DaisyHandle
+
+    public fun main(task: () -> Unit): DaisyHandle
 }

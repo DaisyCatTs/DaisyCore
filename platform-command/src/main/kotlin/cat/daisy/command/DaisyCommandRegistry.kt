@@ -22,7 +22,7 @@ public class AutoLoadingDaisyCommandRegistry internal constructor(
         get() = loadedCommands
 
     override fun reload() {
-        loadedCommands = DaisyCommandDiscovery.discover(plugin)
+        loadedCommands = DaisyCommandDiscovery.discover(plugin).sortedBy(DaisyCommand::name)
         if (loadedCommands.isNotEmpty()) {
             plugin.registerCommands(*loadedCommands.toTypedArray())
         }
@@ -46,14 +46,17 @@ internal object DaisyCommandDiscovery {
 
         val providers = mutableListOf<DaisyCommandProvider>()
         JarFile(jarFile).use { jar ->
-            val entries = jar.entries()
-            while (entries.hasMoreElements()) {
-                val entry = entries.nextElement()
-                if (!entry.name.endsWith(".class") || entry.name.contains('$')) {
-                    continue
-                }
+            val classNames =
+                jar.entries()
+                    .asSequence()
+                    .map { it.name }
+                    .filter { it.endsWith(".class") }
+                    .filterNot { it.contains('$') }
+                    .map { it.removeSuffix(".class").replace('/', '.') }
+                    .sorted()
+                    .toList()
 
-                val className = entry.name.removeSuffix(".class").replace('/', '.')
+            for (className in classNames) {
                 val clazz =
                     runCatching { Class.forName(className, false, plugin.javaClass.classLoader) }
                         .getOrNull()
@@ -70,7 +73,8 @@ internal object DaisyCommandDiscovery {
                     runCatching {
                         @Suppress("UNCHECKED_CAST")
                         when {
-                            clazz.kotlin.objectInstance != null -> clazz.kotlin.objectInstance as DaisyCommandProvider
+                            runCatching { clazz.getField("INSTANCE").get(null) }.getOrNull() is DaisyCommandProvider ->
+                                clazz.getField("INSTANCE").get(null) as DaisyCommandProvider
                             else -> clazz.getDeclaredConstructor().apply { isAccessible = true }.newInstance() as DaisyCommandProvider
                         }
                     }.getOrElse { throwable ->

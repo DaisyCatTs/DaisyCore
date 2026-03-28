@@ -1,6 +1,6 @@
 # DaisyCore
 
-DaisyCore is an all-in-one Kotlin-first Paper platform for serious Minecraft server development. It brings commands, menus, scoreboards, tablists, text, placeholders, items, and runtime infrastructure into one coherent dependency while keeping the codebase internally modular and production-friendly.
+DaisyCore is the one-library approach for Paper plugins. It brings commands, menus, scoreboards, tablists, text, placeholders, items, and runtime infrastructure into one Kotlin-first dependency while keeping the internal codebase modular.
 
 ## Why DaisyCore
 
@@ -9,6 +9,7 @@ DaisyCore is an all-in-one Kotlin-first Paper platform for serious Minecraft ser
 - Internal module boundaries that keep the platform maintainable as it grows.
 - Adventure-first text handling and modern Paper-first design.
 - Shared runtime, placeholder, and item systems so features compose cleanly.
+- Auto-loaded command providers instead of per-plugin registration boilerplate.
 
 ## Modules At A Glance
 
@@ -36,7 +37,7 @@ repositories {
 }
 
 dependencies {
-    implementation("cat.daisy:DaisyCore:0.1.0-SNAPSHOT")
+    implementation("cat.daisy:DaisyCore:1.0.0")
 }
 ```
 
@@ -65,7 +66,62 @@ class MyPlugin : JavaPlugin() {
 }
 ```
 
-## Performance Principles
+## Commands
+
+```kotlin
+@DaisyCommandSet
+object IslandCommands : DaisyCommandProvider {
+    override fun commands(): List<DaisyCommand> =
+        listOf(
+            command("island") {
+                description("Island management")
+
+                sub("create") {
+                    executePlayer {
+                        reply("Island created.")
+                    }
+                }
+            },
+        )
+}
+```
+
+## Menus
+
+```kotlin
+val menu =
+    menu("Skyblock", rows = 3) {
+        slot(13) {
+            item(Material.GRASS_BLOCK) {
+                name = "Your Island"
+            }
+        }
+    }
+```
+
+## Scoreboards
+
+```kotlin
+val sidebar =
+    sidebar {
+        title(DaisyText.plain("Skyblock"))
+        line("coins") { DaisyText.plain("Coins: 1,250") }
+        blank()
+        line("online") { DaisyText.plain("Online: 42") }
+    }
+```
+
+## Tablists
+
+```kotlin
+val tab =
+    tablist {
+        header { DaisyText.plain("Welcome") }
+        footer { DaisyText.plain("docs.daisy.cat") }
+    }
+```
+
+## Runtime Principles
 
 - Batch same-tick runtime work.
 - Diff render state before sending updates.
@@ -75,11 +131,15 @@ class MyPlugin : JavaPlugin() {
 
 ## Status
 
-This repository currently provides the production scaffold and first public contracts for DaisyCore. The platform modules are wired and ready for iterative feature implementation.
+DaisyCore is now structured as one umbrella dependency backed by internal modules. Commands and menus have been consolidated into the repo, and the platform bootstrap, scoreboard runtime, and tablist runtime are in place for continued production hardening.
 
 ## Documentation
 
-The docs site lives separately in `DaisyCoreDocs` and is designed for Astro + Starlight deployment on Cloudflare Pages with Wrangler.
+Documentation lives at [docs.daisy.cat](https://docs.daisy.cat). The docs repo is kept separately in `DaisyCoreDocs`.
+
+## Migration
+
+If you already use `DaisyCommand` or `DaisyMenu`, DaisyCore is the new home. Migration notes are tracked in [MIGRATION.md](MIGRATION.md) and expanded in the docs site.
 
 ## Ecosystem Roadmap
 
