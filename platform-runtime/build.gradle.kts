@@ -1,5 +1,5 @@
 plugins {
-    id("daisycore.kotlin-library")
+    id("daisycore.paper-plugin")
 }
 
 dependencies {

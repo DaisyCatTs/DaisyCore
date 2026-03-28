@@ -9,7 +9,7 @@ public interface DaisyMenuPlatform : AutoCloseable {
     public fun openMenuCount(): Int
 }
 
-internal class DaisyMenuPlatformImpl(
+public class DaisyMenuPlatformImpl(
     override val plugin: Plugin,
 ) : DaisyMenuPlatform {
     init {
