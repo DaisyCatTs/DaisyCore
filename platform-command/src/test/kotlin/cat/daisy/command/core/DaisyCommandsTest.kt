@@ -1,5 +1,8 @@
 package cat.daisy.command.core
 
+import cat.daisy.command.commandGroup
+import cat.daisy.command.replyResult
+import cat.daisy.text.DaisyMessages as SharedMessages
 import cat.daisy.command.arguments.DaisyParser
 import cat.daisy.command.arguments.DaisyPlatform
 import cat.daisy.command.arguments.ParseContext
@@ -23,6 +26,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
+import java.util.concurrent.CompletableFuture
 import java.time.Duration
 import java.util.UUID
 import java.util.logging.Logger
@@ -33,12 +37,13 @@ class DaisyCommandsTest {
     @AfterEach
     fun tearDown() {
         DaisyCooldowns.clearAll()
+        SharedMessages.clear()
         messageStore.clear()
     }
 
     @Test
     fun `typed refs resolve positionals flags and options`() {
-        val alice = player("Alice")
+        val alice = player("Alice", permissions = setOf("lifesteal.staff.tebex"))
         val bob = player("Bob")
         val runtime = runtime(players = listOf(alice, bob))
 
@@ -370,6 +375,99 @@ class DaisyCommandsTest {
 
         assertEquals("island", spec.compiled.name)
         assertEquals(listOf("is"), spec.aliases)
+    }
+
+    @Test
+    fun `command group and ergonomic aliases execute cleanly`() {
+        val alice = player("Alice")
+        val runtime = runtime(players = listOf(alice))
+        val provider =
+            commandGroup {
+                command("storemanage") {
+                    description("Tebex store management")
+                    permission("lifesteal.staff.tebex")
+                    withAliases("sm", "webstore")
+
+                    subcommand("info") {
+                        string("id", optional = true)
+                        player {
+                            reply(stringOr("id", "default-id"))
+                        }
+                    }
+
+                    sub("guide") {
+                        playerExecutor {
+                            reply("guide")
+                        }
+                    }
+
+                    onExecute {
+                        reply("root")
+                    }
+                }
+            }
+
+        val spec = provider.commands().single()
+
+        spec.compiled.execute(alice, "storemanage", listOf("info", "abc-123"), runtime)
+        spec.compiled.execute(alice, "storemanage", emptyList(), runtime)
+
+        assertEquals(listOf("sm", "webstore"), spec.aliases)
+        assertEquals("storemanage", spec.name)
+    }
+
+    @Test
+    fun `arg helpers and async reply sugar reduce boilerplate`() {
+        val alice = player("Alice")
+        val runtime = runtime(players = listOf(alice))
+        SharedMessages.install(
+            object : cat.daisy.text.DaisyTextSource {
+                override fun text(key: String): String? =
+                    when (key) {
+                        "loading" -> "<gray>Loading..."
+                        "commands.tebex.info" -> "Store: {name}"
+                        "commands.tebex.fail" -> "Error: {error}"
+                        else -> null
+                    }
+
+                override fun textList(key: String): List<String> =
+                    when (key) {
+                        "commands.tebex.help" -> listOf("<pink>one", "<pink>two")
+                        else -> emptyList()
+                    }
+            },
+        )
+
+        val spec =
+            command("storemanage") {
+                int("page", optional = true)
+
+                executePlayer {
+                    val page = intOr("page", 1)
+                    reply("Page $page")
+                    loading()
+                    langList("commands.tebex.help").forEach(::reply)
+
+                    CompletableFuture
+                        .completedFuture(Result.success("Daisy Store"))
+                        .replyResult(
+                            context = this,
+                            success = { name ->
+                                replyLang("commands.tebex.info", "name" to name)
+                            },
+                            failure = { error ->
+                                replyLang("commands.tebex.fail", "error" to error.message.orEmpty())
+                            },
+                        )
+                }
+            }
+
+        spec.compiled.execute(alice, "storemanage", emptyList(), runtime)
+
+        assertTrue(sentMessages(alice).any { it.contains("Page 1") })
+        assertTrue(sentMessages(alice).any { it.contains("Loading...") })
+        assertTrue(sentMessages(alice).any { it.contains("one") })
+        assertTrue(sentMessages(alice).any { it.contains("Store: Daisy Store") })
     }
 
     private fun runtime(

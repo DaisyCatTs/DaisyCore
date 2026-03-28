@@ -49,7 +49,7 @@ public class AnvilMenu(
                         completed = true
                         HandlerList.unregisterAll(this)
                         Bukkit.getScheduler().runTask(
-                            DaisyMenu.plugin(),
+                            daisyMenuPlugin(),
                             Runnable {
                                 if (player.openInventory.topInventory == anvilView.topInventory) {
                                     player.closeInventory()
@@ -71,7 +71,7 @@ public class AnvilMenu(
 
                         val result = readInput(anvilView)
                         Bukkit.getScheduler().runTask(
-                            DaisyMenu.plugin(),
+                            daisyMenuPlugin(),
                             Runnable {
                                 if (continuation.isActive) {
                                     continuation.resume(result)
@@ -84,7 +84,7 @@ public class AnvilMenu(
             continuation.invokeOnCancellation {
                 HandlerList.unregisterAll(listener)
                 Bukkit.getScheduler().runTask(
-                    DaisyMenu.plugin(),
+                    daisyMenuPlugin(),
                     Runnable {
                         if (player.openInventory.topInventory == anvilView.topInventory) {
                             player.closeInventory()
@@ -93,9 +93,9 @@ public class AnvilMenu(
                 )
             }
 
-            Bukkit.getPluginManager().registerEvents(listener, DaisyMenu.plugin())
+            Bukkit.getPluginManager().registerEvents(listener, daisyMenuPlugin())
             Bukkit.getScheduler().runTask(
-                DaisyMenu.plugin(),
+                daisyMenuPlugin(),
                 Runnable {
                     player.openInventory(anvilView)
                     anvilView.topInventory.setItem(0, inputItem)

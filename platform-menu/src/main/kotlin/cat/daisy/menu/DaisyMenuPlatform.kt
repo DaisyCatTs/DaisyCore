@@ -13,20 +13,16 @@ public class DaisyMenuPlatformImpl(
     override val plugin: Plugin,
 ) : DaisyMenuPlatform {
     init {
-        if (!DaisyMenu.isInitialized()) {
-            DaisyMenu.initialize(plugin)
+        if (!DaisyMenuRuntime.isInitialized()) {
+            DaisyMenuRuntime.initialize(plugin)
         }
     }
 
-    override fun openMenuCount(): Int = DaisyMenu.getOpenMenuCount()
+    override fun openMenuCount(): Int = DaisyMenuRuntime.getOpenMenuCount()
 
     override fun close() {
-        if (DaisyMenu.isInitialized()) {
-            DaisyMenu.shutdown()
+        if (DaisyMenuRuntime.isInitialized()) {
+            DaisyMenuRuntime.shutdown()
         }
     }
 }
-
-public typealias DaisyMenuDefinition = Menu
-public typealias DaisyMenuBuilderDsl = MenuBuilder
-public typealias DaisyMenuSession = MenuSession

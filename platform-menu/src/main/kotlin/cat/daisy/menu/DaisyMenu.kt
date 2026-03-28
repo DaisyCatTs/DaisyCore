@@ -1,4 +1,3 @@
-@file:JvmName("DaisyMenu")
 @file:Suppress("unused")
 
 package cat.daisy.menu
@@ -22,9 +21,9 @@ import org.bukkit.plugin.Plugin
 import java.util.logging.Level
 
 /**
- * Entry point and runtime owner for DaisyMenu.
+ * Runtime owner for Daisy menus.
  */
-public object DaisyMenu {
+public object DaisyMenuRuntime {
     private val blockedBottomActions =
         setOf(
             InventoryAction.COLLECT_TO_CURSOR,
@@ -46,7 +45,7 @@ public object DaisyMenu {
         pluginInstance: Plugin,
         scope: CoroutineScope? = null,
     ) {
-        check(plugin == null) { "DaisyMenu is already initialized. Call DaisyMenu.shutdown() before initializing again." }
+        check(plugin == null) { "DaisyMenuRuntime is already initialized. Call DaisyMenuRuntime.shutdown() before initializing again." }
 
         plugin = pluginInstance
         val exceptionHandler =
@@ -142,15 +141,15 @@ public object DaisyMenu {
         }
     }
 
-    internal fun plugin(): Plugin = plugin ?: error("DaisyMenu is not initialized. Call DaisyMenu.initialize(plugin) first.")
+    internal fun plugin(): Plugin = plugin ?: error("DaisyMenuRuntime is not initialized. Call DaisyMenuRuntime.initialize(plugin) first.")
 
-    internal fun scope(): CoroutineScope = scope ?: error("DaisyMenu is not initialized. Call DaisyMenu.initialize(plugin) first.")
+    internal fun scope(): CoroutineScope = scope ?: error("DaisyMenuRuntime is not initialized. Call DaisyMenuRuntime.initialize(plugin) first.")
 
     internal fun logFailure(
         operation: String,
         throwable: Throwable,
     ) {
-        plugin?.logger?.log(Level.SEVERE, "DaisyMenu failed during $operation", throwable)
+        plugin?.logger?.log(Level.SEVERE, "DaisyMenuRuntime failed during $operation", throwable)
     }
 
     private fun resolveSession(event: InventoryClickEvent): MenuSession? {
@@ -173,3 +172,7 @@ public object DaisyMenu {
         return false
     }
 }
+
+internal fun daisyMenuPlugin(): Plugin = DaisyMenuRuntime.plugin()
+
+internal fun daisyMenuScope(): CoroutineScope = DaisyMenuRuntime.scope()

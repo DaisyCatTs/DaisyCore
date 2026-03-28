@@ -47,7 +47,7 @@ public class MenuSession internal constructor(
 ) {
     private val renderMutex = Mutex()
     private val holder = MenuInventoryHolder(this)
-    private val sessionScope: CoroutineScope = DaisyMenu.createSessionScope("menu:${player.uniqueId}")
+    private val sessionScope: CoroutineScope = DaisyMenuRuntime.createSessionScope("menu:${player.uniqueId}")
     private val activeDefinitions: Array<SlotDefinition?> = arrayOfNulls(menu.size)
     private val renderedItems: Array<ItemStack?> = arrayOfNulls(menu.size)
     private val slotRefreshes: Array<ManagedRefresh?> = arrayOfNulls(menu.size)
@@ -71,7 +71,7 @@ public class MenuSession internal constructor(
             if (closed) {
                 return@launch
             }
-            DaisyMenu.registerSession(this@MenuSession)
+            DaisyMenuRuntime.registerSession(this@MenuSession)
             player.openInventory(inventory)
             invokeHandlers(menu.openHandlers, "open")
         }
@@ -81,7 +81,7 @@ public class MenuSession internal constructor(
         if (closed) {
             return
         }
-        DaisyMenu.runOnMain {
+        DaisyMenuRuntime.runOnMain {
             if (!closed && hasOpenInventory()) {
                 player.closeInventory()
             }
@@ -154,10 +154,10 @@ public class MenuSession internal constructor(
             return
         }
         closed = true
-        DaisyMenu.unregisterSession(this)
+        DaisyMenuRuntime.unregisterSession(this)
         cancelRefreshes()
         sessionScope.cancel()
-        DaisyMenu.scope().launch {
+        daisyMenuScope().launch {
             invokeHandlers(menu.closeHandlers, "close")
         }
     }
@@ -275,7 +275,7 @@ public class MenuSession internal constructor(
             runCatching {
                 handler(this)
             }.onFailure { throwable ->
-                DaisyMenu.logFailure("menu $phase callback", throwable)
+                DaisyMenuRuntime.logFailure("menu $phase callback", throwable)
             }
         }
     }
@@ -413,7 +413,7 @@ private class ManagedRefresh(
     fun start() {
         task =
             Bukkit.getScheduler().runTaskTimer(
-                DaisyMenu.plugin(),
+                daisyMenuPlugin(),
                 Runnable {
                     if (running) {
                         return@Runnable
@@ -423,7 +423,7 @@ private class ManagedRefresh(
                         try {
                             invoke()
                         } catch (throwable: Throwable) {
-                            DaisyMenu.logFailure("menu refresh", throwable)
+                            DaisyMenuRuntime.logFailure("menu refresh", throwable)
                         } finally {
                             running = false
                         }

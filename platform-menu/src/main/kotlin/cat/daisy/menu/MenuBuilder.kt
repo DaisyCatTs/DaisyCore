@@ -60,6 +60,13 @@ public class MenuBuilder(
         }
     }
 
+    public fun background(
+        material: Material = Material.GRAY_STAINED_GLASS_PANE,
+        block: ItemBuilder.() -> Unit = {},
+    ) {
+        fill(material, block)
+    }
+
     public fun fillSlots(
         vararg indices: Int,
         block: SlotBuilder.() -> Unit,
@@ -208,7 +215,7 @@ public class SlotBuilder {
 
     private var renderer: (MenuRenderContext.() -> ItemStack?)? = null
     private var refreshTicks: Long? = null
-    private val clickBindings = mutableListOf<MenuClickBinding>()
+    private val clickBindings = mutableListOf<ClickBindingDraft>()
 
     public fun item(
         material: Material,
@@ -228,11 +235,12 @@ public class SlotBuilder {
 
     @JvmName("onClickContext")
     public fun onClick(handler: suspend MenuClickContext.() -> Unit) {
-        addClickBinding({ true }, onMenuClick(handler))
+        addClickBinding(ClickBindingKey.ANY, { true }, onMenuClick(handler))
     }
 
     public fun onPlayerClick(handler: suspend Player.() -> Unit) {
         addClickBinding(
+            ClickBindingKey.ANY,
             { true },
             onMenuClick {
                 player.handler()
@@ -243,6 +251,7 @@ public class SlotBuilder {
     @JvmName("onClickPlayerAndClickType")
     public fun onClick(handler: suspend (Player, ClickType) -> Unit) {
         addClickBinding(
+            ClickBindingKey.ANY,
             { true },
             onMenuClick {
                 handler(player, clickType)
@@ -251,27 +260,54 @@ public class SlotBuilder {
     }
 
     public fun onClick(action: MenuClickAction) {
-        addClickBinding({ true }, action)
+        addClickBinding(ClickBindingKey.ANY, { true }, action)
+    }
+
+    public fun message(text: String) {
+        onClick {
+            player.sendMessage(text)
+        }
+    }
+
+    public fun messageMm(text: String) {
+        onClick {
+            player.sendMessage(text.mm())
+        }
+    }
+
+    public fun openUrl(url: String) {
+        onClick {
+            player.sendMessage(
+                net.kyori.adventure.text.Component
+                    .text(url)
+                    .clickEvent(net.kyori.adventure.text.event.ClickEvent.openUrl(url)),
+            )
+        }
+    }
+
+    public fun refreshOnClick(vararg slots: Int) {
+        invalidateOnClick(*slots)
     }
 
     public fun onLeftClick(handler: suspend MenuClickContext.() -> Unit) {
-        addClickBinding({ clickType -> clickType.isLeftClick }, onMenuClick(handler))
+        addClickBinding(ClickBindingKey.LEFT, { clickType -> clickType.isLeftClick }, onMenuClick(handler))
     }
 
     public fun onRightClick(handler: suspend MenuClickContext.() -> Unit) {
-        addClickBinding({ clickType -> clickType.isRightClick }, onMenuClick(handler))
+        addClickBinding(ClickBindingKey.RIGHT, { clickType -> clickType.isRightClick }, onMenuClick(handler))
     }
 
     public fun onShiftClick(handler: suspend MenuClickContext.() -> Unit) {
-        addClickBinding({ clickType -> clickType.isShiftClick }, onMenuClick(handler))
+        addClickBinding(ClickBindingKey.SHIFT, { clickType -> clickType.isShiftClick }, onMenuClick(handler))
     }
 
     public fun onMiddleClick(handler: suspend MenuClickContext.() -> Unit) {
-        addClickBinding({ clickType -> clickType == ClickType.MIDDLE }, onMenuClick(handler))
+        addClickBinding(ClickBindingKey.MIDDLE, { clickType -> clickType == ClickType.MIDDLE }, onMenuClick(handler))
     }
 
     public fun onDropClick(handler: suspend MenuClickContext.() -> Unit) {
         addClickBinding(
+            ClickBindingKey.DROP,
             { clickType -> clickType == ClickType.DROP || clickType == ClickType.CONTROL_DROP },
             onMenuClick(handler),
         )
@@ -308,18 +344,49 @@ public class SlotBuilder {
         return SlotDefinition(
             item = item,
             renderer = renderer,
-            clickBindings = clickBindings.toList(),
+            clickBindings =
+                clickBindings.map { binding ->
+                    MenuClickBinding(binding.matcher, compositeAction(binding.actions))
+                },
             refreshTicks = refreshTicks,
         )
     }
 
     private fun addClickBinding(
+        key: ClickBindingKey,
         matcher: (ClickType) -> Boolean,
         action: MenuClickAction,
     ) {
-        clickBindings += MenuClickBinding(matcher, action)
+        val existing = clickBindings.firstOrNull { it.key == key }
+        if (existing != null) {
+            existing.actions += action
+            return
+        }
+        clickBindings += ClickBindingDraft(key, matcher, mutableListOf(action))
     }
 }
+
+private enum class ClickBindingKey {
+    ANY,
+    LEFT,
+    RIGHT,
+    SHIFT,
+    MIDDLE,
+    DROP,
+}
+
+private data class ClickBindingDraft(
+    val key: ClickBindingKey,
+    val matcher: (ClickType) -> Boolean,
+    val actions: MutableList<MenuClickAction>,
+)
+
+private fun compositeAction(actions: List<MenuClickAction>): MenuClickAction =
+    onMenuClick {
+        actions.forEach { action ->
+            action.invoke(this)
+        }
+    }
 
 /**
  * Mapping for pattern-based menu layouts.

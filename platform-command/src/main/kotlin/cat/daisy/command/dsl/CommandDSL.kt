@@ -54,6 +54,13 @@ class CommandSetBuilder {
     internal fun build(): BuiltCommandSet = BuiltCommandSet(commands.toList(), configBuilder.build())
 }
 
+fun CommandSetBuilder.subcommand(
+    name: String,
+    block: CommandBuilder.() -> Unit,
+) {
+    add(cat.daisy.command.dsl.command(name, block))
+}
+
 internal data class BuiltCommandSet(
     val commands: List<CommandSpec>,
     val config: DaisyConfig,
@@ -80,6 +87,10 @@ class CommandBuilder internal constructor(
 
     fun aliases(vararg values: String) {
         aliases = values.toMutableList()
+    }
+
+    fun withAliases(vararg values: String) {
+        aliases(*values)
     }
 
     fun permission(nodePermission: String) {
@@ -124,8 +135,31 @@ class CommandBuilder internal constructor(
         children += CommandBuilder(name, root = false).apply(block)
     }
 
+    fun subcommand(
+        name: String,
+        block: CommandBuilder.() -> Unit,
+    ) {
+        sub(name, block)
+    }
+
+    fun anySender(block: CommandContext.() -> Unit) {
+        execute(block)
+    }
+
+    fun player(block: PlayerCommandContext.() -> Unit) {
+        executePlayer(block)
+    }
+
+    fun console(block: ConsoleCommandContext.() -> Unit) {
+        executeConsole(block)
+    }
+
     fun execute(block: CommandContext.() -> Unit) {
         setHandler(AnyHandler(block))
+    }
+
+    fun onExecute(block: CommandContext.() -> Unit) {
+        execute(block)
     }
 
     fun executePlayer(block: PlayerCommandContext.() -> Unit) {
@@ -133,53 +167,90 @@ class CommandBuilder internal constructor(
         setHandler(PlayerHandler(block))
     }
 
+    fun playerExecutor(block: PlayerCommandContext.() -> Unit) {
+        executePlayer(block)
+    }
+
     fun executeConsole(block: ConsoleCommandContext.() -> Unit) {
         consoleOnly()
         setHandler(ConsoleHandler(block))
     }
 
+    fun consoleExecutor(block: ConsoleCommandContext.() -> Unit) {
+        executeConsole(block)
+    }
+
     fun string(
         name: String,
+        optional: Boolean = false,
         block: ArgumentRef<String>.() -> Unit = {},
-    ): ArgumentRef<String> = positional(name, Parsers.STRING, block)
+    ): ArgumentRef<String> = positional(name, Parsers.STRING) {
+        if (optional) optional()
+        block()
+    }
 
     fun text(
         name: String,
+        optional: Boolean = false,
+        greedy: Boolean = true,
         block: ArgumentRef<String>.() -> Unit = {},
-    ): ArgumentRef<String> = positional(name, Parsers.TEXT, block)
+    ): ArgumentRef<String> = positional(name, if (greedy) Parsers.TEXT else Parsers.STRING) {
+        if (optional) optional()
+        block()
+    }
 
     fun int(
         name: String,
         min: Int = Int.MIN_VALUE,
         max: Int = Int.MAX_VALUE,
+        optional: Boolean = false,
         block: ArgumentRef<Int>.() -> Unit = {},
-    ): ArgumentRef<Int> = positional(name, Parsers.int(min, max), block)
+    ): ArgumentRef<Int> = positional(name, Parsers.int(min, max)) {
+        if (optional) optional()
+        block()
+    }
 
     fun long(
         name: String,
         min: Long = Long.MIN_VALUE,
         max: Long = Long.MAX_VALUE,
+        optional: Boolean = false,
         block: ArgumentRef<Long>.() -> Unit = {},
-    ): ArgumentRef<Long> = positional(name, Parsers.long(min, max), block)
+    ): ArgumentRef<Long> = positional(name, Parsers.long(min, max)) {
+        if (optional) optional()
+        block()
+    }
 
     fun double(
         name: String,
         min: Double = Double.NEGATIVE_INFINITY,
         max: Double = Double.POSITIVE_INFINITY,
+        optional: Boolean = false,
         block: ArgumentRef<Double>.() -> Unit = {},
-    ): ArgumentRef<Double> = positional(name, Parsers.double(min, max), block)
+    ): ArgumentRef<Double> = positional(name, Parsers.double(min, max)) {
+        if (optional) optional()
+        block()
+    }
 
     fun float(
         name: String,
         min: Float = Float.NEGATIVE_INFINITY,
         max: Float = Float.POSITIVE_INFINITY,
+        optional: Boolean = false,
         block: ArgumentRef<Float>.() -> Unit = {},
-    ): ArgumentRef<Float> = positional(name, Parsers.float(min, max), block)
+    ): ArgumentRef<Float> = positional(name, Parsers.float(min, max)) {
+        if (optional) optional()
+        block()
+    }
 
     fun boolean(
         name: String,
+        optional: Boolean = false,
         block: ArgumentRef<Boolean>.() -> Unit = {},
-    ): ArgumentRef<Boolean> = positional(name, Parsers.BOOLEAN, block)
+    ): ArgumentRef<Boolean> = positional(name, Parsers.BOOLEAN) {
+        if (optional) optional()
+        block()
+    }
 
     fun player(
         name: String,

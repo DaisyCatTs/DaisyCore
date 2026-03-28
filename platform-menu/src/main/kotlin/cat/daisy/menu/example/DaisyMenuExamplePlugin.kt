@@ -1,6 +1,6 @@
 package cat.daisy.menu.example
 
-import cat.daisy.menu.DaisyMenu
+import cat.daisy.menu.DaisyMenuRuntime
 import cat.daisy.menu.menu
 import cat.daisy.menu.openMenu
 import cat.daisy.menu.text.DaisyText.mm
@@ -14,7 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin
  */
 internal class DaisyMenuExamplePlugin : JavaPlugin() {
     override fun onEnable() {
-        DaisyMenu.initialize(this)
+        DaisyMenuRuntime.initialize(this)
 
         getCommand("shop")?.setExecutor { sender, _, _, _ ->
             if (sender is Player) {
@@ -138,6 +138,6 @@ internal class DaisyMenuExamplePlugin : JavaPlugin() {
     }
 
     override fun onDisable() {
-        DaisyMenu.shutdown()
+        DaisyMenuRuntime.shutdown()
     }
 }

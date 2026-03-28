@@ -1,6 +1,7 @@
 package cat.daisy.menu
 
 import net.kyori.adventure.text.Component
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -138,14 +139,79 @@ class DaisyMenuCoreTest {
             val otherPlayer = createPlayer("shutdown")
             val otherSession = otherPlayer.openMenu(menu("Shutdown", rows = 1) {})
             bindOpenInventory(otherPlayer, otherSession.inventory)
-            assertTrue(DaisyMenu.getOpenMenuCount() >= 1)
+            assertTrue(DaisyMenuRuntime.getOpenMenuCount() >= 1)
 
-            DaisyMenu.shutdown()
-            assertEquals(0, DaisyMenu.getOpenMenuCount())
+            DaisyMenuRuntime.shutdown()
+            assertEquals(0, DaisyMenuRuntime.getOpenMenuCount())
+        }
+    }
+
+    @Test
+    fun `inline open menu and click sugar stay concise`() {
+        withMenuEnvironment { _, _, _, _, _ ->
+            val player = createPlayer("inline")
+            val sent = sentMessages(player)
+            val display = mock(ItemStack::class.java)
+            `when`(display.clone()).thenReturn(display)
+            val closer = mock(ItemStack::class.java)
+            `when`(closer.clone()).thenReturn(closer)
+
+            val session =
+                player.openMenu(title = "Inline", rows = 1) {
+                    slot(0) {
+                        item = display
+                    }
+
+                    slot(8) {
+                        item = closer
+                        messageMm("<#f38ba8>Closed")
+                        closeOnClick()
+                    }
+                }
+
+            bindOpenInventory(player, session.inventory)
+            assertTrue(session.inventory.getItem(0) === display)
+            assertTrue(session.inventory.getItem(8) === closer)
+
+            session.handleTopClick(8, ClickType.LEFT)
+
+            assertTrue(sent.any { it.contains("Closed") })
+        }
+    }
+
+    @Test
+    fun `refreshOnClick invalidates like the shorter alias promises`() {
+        withMenuEnvironment { _, _, _, _, _ ->
+            var count = 0
+            val player = createPlayer("refresh-short")
+            val trigger = mock(ItemStack::class.java)
+            `when`(trigger.clone()).thenReturn(trigger)
+            val session =
+                player.openMenu(title = "Refresh Alias", rows = 1) {
+                    slot(0) {
+                        render {
+                            val paper = mock(ItemStack::class.java)
+                            `when`(paper.clone()).thenReturn(paper)
+                            paper
+                        }
+                    }
+                    slot(1) {
+                        item = trigger
+                        onClick {
+                            count++
+                        }
+                        refreshOnClick(0)
+                    }
+                }
+
+            assertTrue(session.inventory.getItem(0) != null)
+            session.handleTopClick(1, ClickType.LEFT)
+            verify(session.inventory, times(2)).setItem(org.mockito.ArgumentMatchers.eq(0), org.mockito.ArgumentMatchers.any())
         }
     }
 
     private val createdTasks = mutableListOf<BukkitTask>()
+    private val messageStore = mutableMapOf<Player, MutableList<String>>()
 
     private fun withMenuEnvironment(
         block: MenuTestContext.(
@@ -201,12 +267,13 @@ class DaisyMenuCoreTest {
                 )
             }.thenAnswer { createInventory() }
 
-            DaisyMenu.initialize(plugin)
+            DaisyMenuRuntime.initialize(plugin)
             try {
                 MenuTestContext(createdInventories).block(scheduler, plugin, pluginManager, taskCaptor, createInventory)
             } finally {
-                if (DaisyMenu.isInitialized()) {
-                    DaisyMenu.shutdown()
+                messageStore.clear()
+                if (DaisyMenuRuntime.isInitialized()) {
+                    DaisyMenuRuntime.shutdown()
                 }
             }
         }
@@ -216,14 +283,22 @@ class DaisyMenuCoreTest {
         val player = mock(Player::class.java)
         val openView = mock(InventoryView::class.java)
         val topInventory = mock(Inventory::class.java)
+        val messages = mutableListOf<String>()
         `when`(player.name).thenReturn(name)
         `when`(player.uniqueId).thenReturn(UUID.nameUUIDFromBytes(name.toByteArray()))
         `when`(player.isOnline).thenReturn(true)
         `when`(openView.topInventory).thenReturn(topInventory)
         `when`(player.openInventory).thenReturn(openView)
         doReturn(openView).`when`(player).openInventory(org.mockito.ArgumentMatchers.any(Inventory::class.java))
+        doAnswer {
+            messages += PlainTextComponentSerializer.plainText().serialize(it.getArgument<Component>(0))
+            null
+        }.`when`(player).sendMessage(org.mockito.ArgumentMatchers.any(Component::class.java))
+        messageStore[player] = messages
         return player
     }
+
+    private fun sentMessages(player: Player): List<String> = messageStore[player] ?: emptyList()
 
     private fun bindOpenInventory(
         player: Player,
