@@ -17,7 +17,7 @@ public class BukkitDispatcher : CoroutineDispatcher() {
         if (Bukkit.isPrimaryThread()) {
             block.run()
         } else {
-            Bukkit.getScheduler().runTask(DaisyMenu.plugin(), block)
+            Bukkit.getScheduler().runTask(daisyMenuPlugin(), block)
         }
     }
 }
@@ -25,6 +25,9 @@ public class BukkitDispatcher : CoroutineDispatcher() {
 public fun getBukkitDispatcher(): CoroutineDispatcher = BukkitDispatcher()
 
 public fun Player.openMenu(menu: Menu): MenuSession = menu.open(this)
+
+public fun Player.openMenu(block: MenuBuilder.() -> Unit): MenuSession =
+    openMenu(MenuBuilder().apply(block).build())
 
 public fun Player.openMenu(
     title: String,
@@ -36,7 +39,7 @@ public fun Player.openAnvilAsync(
     title: String,
     block: (String?) -> Unit,
 ) {
-    DaisyMenu.scope().launch {
+    daisyMenuScope().launch {
         block(openAnvil(title))
     }
 }

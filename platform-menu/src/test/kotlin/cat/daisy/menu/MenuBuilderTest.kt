@@ -26,12 +26,12 @@ class MenuBuilderTest {
     fun setUp() {
         server = MockBukkit.mock()
         plugin = MockBukkit.createMockPlugin()
-        DaisyMenu.initialize(plugin)
+        DaisyMenuRuntime.initialize(plugin)
     }
 
     @AfterEach
     fun tearDown() {
-        DaisyMenu.shutdown()
+        DaisyMenuRuntime.shutdown()
         MockBukkit.unmock()
     }
 

@@ -5,6 +5,8 @@ package cat.daisy.command.context
 import cat.daisy.command.arguments.ArgumentRef
 import cat.daisy.command.core.CommandRuntime
 import cat.daisy.command.text.DaisyText.mm
+import cat.daisy.text.DaisyMessages
+import cat.daisy.text.withPlaceholders
 import net.kyori.adventure.text.Component
 import org.bukkit.command.CommandSender
 import org.bukkit.command.ConsoleCommandSender
@@ -50,6 +52,10 @@ open class CommandContext internal constructor(
         sendWithPrefix(message)
     }
 
+    fun replyMm(message: String) {
+        sender.sendMessage(message.mm())
+    }
+
     fun reply(component: Component) {
         sender.sendMessage(component)
     }
@@ -61,6 +67,56 @@ open class CommandContext internal constructor(
     }
 
     fun <T> get(ref: ArgumentRef<T>): T = resolvedArguments.get(ref)
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T> arg(name: String): T =
+        resolvedArguments.byName(name) as? T
+            ?: error("Argument '$name' is missing or has the wrong type.")
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T> argOr(
+        name: String,
+        default: T,
+    ): T = resolvedArguments.byName(name) as? T ?: default
+
+    fun string(name: String): String = arg(name)
+
+    fun stringOr(
+        name: String,
+        default: String,
+    ): String = argOr(name, default)
+
+    fun int(name: String): Int = arg(name)
+
+    fun intOr(
+        name: String,
+        default: Int,
+    ): Int = argOr(name, default)
+
+    fun double(name: String): Double = arg(name)
+
+    fun doubleOr(
+        name: String,
+        default: Double,
+    ): Double = argOr(name, default)
+
+    fun lang(
+        key: String,
+        vararg placeholders: Pair<String, Any?>,
+    ): String = DaisyMessages.resolve(key)?.withPlaceholders(*placeholders) ?: key
+
+    fun langList(key: String): List<Component> = DaisyMessages.resolveList(key).map { it.mm() }
+
+    fun replyLang(
+        key: String,
+        vararg placeholders: Pair<String, Any?>,
+    ) {
+        reply(lang(key, *placeholders))
+    }
+
+    fun loading(key: String = "loading") {
+        replyLang(key)
+    }
 
     operator fun <T> ArgumentRef<T>.invoke(): T = get(this)
 
