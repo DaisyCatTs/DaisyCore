@@ -1,6 +1,8 @@
 package cat.daisy.core.platform
 
 import cat.daisy.core.DaisyFeature
+import cat.daisy.text.DaisyMessages
+import cat.daisy.text.DaisyTextSource
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.mockStatic
@@ -86,5 +88,29 @@ class DaisyPlatformBuilderTest {
             assertNotNull(platform.tablists)
             platform.close()
         }
+    }
+
+    @Test
+    fun `messages source installs and clears with platform lifecycle`() {
+        val plugin = mock<Plugin>()
+        whenever(plugin.logger).thenReturn(Logger.getLogger("test"))
+        val source =
+            object : DaisyTextSource {
+                override fun text(key: String): String? = if (key == "hello") "<pink>Hello" else null
+
+                override fun textList(key: String): List<String> = if (key == "list") listOf("a", "b") else emptyList()
+            }
+
+        val platform =
+            DaisyPlatform.create(plugin) {
+                messages(source)
+            }
+
+        assertEquals(source, platform.messageSource)
+        assertEquals("<pink>Hello", DaisyMessages.resolve("hello"))
+
+        platform.close()
+
+        assertNull(DaisyMessages.resolve("hello"))
     }
 }

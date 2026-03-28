@@ -15,27 +15,43 @@ public interface DaisyTextSource : DaisyMessageResolver {
 }
 
 public object DaisyMessages {
-    private var resolver: DaisyMessageResolver? = null
-    private var textSource: DaisyTextSource? = null
+    private var binding: DaisyMessageBinding? = null
 
     public fun install(resolver: DaisyMessageResolver) {
-        this.resolver = resolver
+        binding = DaisyMessageBinding(owner = null, resolver = resolver, textSource = null)
     }
 
     public fun install(textSource: DaisyTextSource) {
-        this.textSource = textSource
-        this.resolver = textSource
+        binding = DaisyMessageBinding(owner = null, resolver = textSource, textSource = textSource)
+    }
+
+    public fun install(
+        owner: Any,
+        textSource: DaisyTextSource,
+    ) {
+        binding = DaisyMessageBinding(owner = owner, resolver = textSource, textSource = textSource)
+    }
+
+    public fun clear(owner: Any) {
+        if (binding?.owner === owner) {
+            clear()
+        }
     }
 
     public fun clear() {
-        resolver = null
-        textSource = null
+        binding = null
     }
 
-    public fun resolve(key: String): String? = textSource?.text(key) ?: resolver?.resolve(key)
+    public fun resolve(key: String): String? = binding?.textSource?.text(key) ?: binding?.resolver?.resolve(key)
 
-    public fun resolveList(key: String): List<String> = textSource?.textList(key) ?: emptyList()
+    public fun resolveList(key: String): List<String> = binding?.textSource?.textList(key) ?: emptyList()
 }
+
+private data class DaisyMessageBinding(
+    val owner: Any?,
+    val resolver: DaisyMessageResolver,
+    val textSource: DaisyTextSource?,
+)
 
 public fun DaisyTextSource.render(
     key: String,

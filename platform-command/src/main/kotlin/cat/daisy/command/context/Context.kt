@@ -66,6 +66,11 @@ open class CommandContext internal constructor(
         throw AbortExecution
     }
 
+    fun failLang(
+        key: String,
+        vararg placeholders: Pair<String, Any?>,
+    ): Nothing = fail(lang(key, *placeholders))
+
     fun <T> get(ref: ArgumentRef<T>): T = resolvedArguments.get(ref)
 
     @Suppress("UNCHECKED_CAST")

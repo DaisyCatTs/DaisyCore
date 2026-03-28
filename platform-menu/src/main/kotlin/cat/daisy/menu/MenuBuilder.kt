@@ -1,6 +1,9 @@
 package cat.daisy.menu
 
 import cat.daisy.menu.text.DaisyText.mm
+import cat.daisy.item.DaisyViewerText
+import cat.daisy.text.DaisyMessages
+import cat.daisy.text.withPlaceholders
 import org.bukkit.Material
 import org.bukkit.entity.Player
 import org.bukkit.event.inventory.ClickType
@@ -275,6 +278,25 @@ public class SlotBuilder {
         }
     }
 
+    public fun messageLang(
+        key: String,
+        vararg placeholders: Pair<String, Any?>,
+    ) {
+        onClick {
+            player.sendMessage(renderLangMessage(player, key, placeholders.asList()).mm())
+        }
+    }
+
+    public fun messageLang(
+        key: String,
+        viewer: Player,
+        vararg placeholders: Pair<String, Any?>,
+    ) {
+        onClick {
+            viewer.sendMessage(renderLangMessage(viewer, key, placeholders.asList()).mm())
+        }
+    }
+
     public fun openUrl(url: String) {
         onClick {
             player.sendMessage(
@@ -387,6 +409,15 @@ private fun compositeAction(actions: List<MenuClickAction>): MenuClickAction =
             action.invoke(this)
         }
     }
+
+private fun renderLangMessage(
+    viewer: Player?,
+    key: String,
+    placeholders: List<Pair<String, Any?>>,
+): String {
+    val raw = DaisyMessages.resolve(key)?.withPlaceholders(*placeholders.toTypedArray()) ?: key
+    return DaisyViewerText.render(raw, viewer)
+}
 
 /**
  * Mapping for pattern-based menu layouts.

@@ -1,5 +1,7 @@
 package cat.daisy.menu
 
+import cat.daisy.text.DaisyMessages
+import cat.daisy.text.DaisyTextSource
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.bukkit.Bukkit
@@ -176,6 +178,40 @@ class DaisyMenuCoreTest {
             session.handleTopClick(8, ClickType.LEFT)
 
             assertTrue(sent.any { it.contains("Closed") })
+        }
+    }
+
+    @Test
+    fun `messageLang uses the shared text source on click`() {
+        DaisyMessages.install(
+            object : DaisyTextSource {
+                override fun text(key: String): String? = if (key == "clicked") "<pink>Hello {player}" else null
+
+                override fun textList(key: String): List<String> = emptyList()
+            },
+        )
+
+        try {
+            withMenuEnvironment { _, _, _, _, _ ->
+                val player = createPlayer("lang-click")
+                val sent = sentMessages(player)
+                val trigger = mock(ItemStack::class.java)
+                `when`(trigger.clone()).thenReturn(trigger)
+
+                val session =
+                    player.openMenu(title = "Lang", rows = 1) {
+                        slot(0) {
+                            item = trigger
+                            messageLang("clicked", "player" to player.name)
+                        }
+                    }
+
+                session.handleTopClick(0, ClickType.LEFT)
+
+                assertTrue(sent.any { it.contains("Hello lang-click") })
+            }
+        } finally {
+            DaisyMessages.clear()
         }
     }
 

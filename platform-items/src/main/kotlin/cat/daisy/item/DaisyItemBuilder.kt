@@ -1,12 +1,11 @@
 package cat.daisy.item
 
+import cat.daisy.text.DaisyMessages
 import cat.daisy.text.DaisyText
+import cat.daisy.text.withPlaceholders
 import net.kyori.adventure.text.Component
-import org.bukkit.Bukkit
 import org.bukkit.Material
-import org.bukkit.OfflinePlayer
 import org.bukkit.entity.Player
-import java.lang.reflect.Method
 
 public class DaisyItemBuilder(
     private val material: Material,
@@ -30,7 +29,20 @@ public class DaisyItemBuilder(
         text: String,
         viewer: Player,
     ) {
-        name = DaisyText.parse(resolveViewerPlaceholders(text, viewer))
+        name = DaisyText.parse(DaisyViewerText.render(text, viewer))
+    }
+
+    public fun nameLang(
+        key: String,
+        viewer: Player? = null,
+        vararg placeholders: Pair<String, Any?>,
+    ) {
+        val text = DaisyMessages.resolve(key)?.withPlaceholders(*placeholders) ?: key
+        if (viewer != null) {
+            name(text, viewer)
+        } else {
+            name(text)
+        }
     }
 
     public fun lore(line: String) {
@@ -41,7 +53,7 @@ public class DaisyItemBuilder(
         line: String,
         viewer: Player,
     ) {
-        lore += DaisyText.parse(resolveViewerPlaceholders(line, viewer))
+        lore += DaisyText.parse(DaisyViewerText.render(line, viewer))
     }
 
     public fun loreMm(lines: List<String>) {
@@ -52,7 +64,20 @@ public class DaisyItemBuilder(
         lines: List<String>,
         viewer: Player,
     ) {
-        lore += lines.map { DaisyText.parse(resolveViewerPlaceholders(it, viewer)) }
+        lore += DaisyViewerText.render(lines, viewer).map(DaisyText::parse)
+    }
+
+    public fun loreLang(
+        key: String,
+        viewer: Player? = null,
+        vararg placeholders: Pair<String, Any?>,
+    ) {
+        val lines = DaisyMessages.resolveList(key).map { it.withPlaceholders(*placeholders) }
+        if (viewer != null) {
+            lore += DaisyViewerText.render(lines, viewer).map(DaisyText::parse)
+        } else {
+            lore += lines.map(DaisyText::parse)
+        }
     }
 
     public fun build(): DaisyItemSpec =
@@ -61,36 +86,6 @@ public class DaisyItemBuilder(
             name = name,
             lore = lore.toList(),
         )
-}
-
-private var placeholderMethod: Method? = null
-private var placeholderApiAvailable: Boolean? = null
-
-private fun resolveViewerPlaceholders(
-    input: String,
-    player: Player?,
-): String {
-    if (player == null) {
-        return input
-    }
-    val available =
-        placeholderApiAvailable ?: run {
-            val installed = Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null
-            placeholderApiAvailable = installed
-            installed
-        }
-    if (!available) {
-        return input
-    }
-
-    val method =
-        placeholderMethod ?: runCatching {
-            Class.forName("me.clip.placeholderapi.PlaceholderAPI")
-                .getMethod("setPlaceholders", OfflinePlayer::class.java, String::class.java)
-        }.getOrNull().also { placeholderMethod = it }
-    return runCatching {
-        method?.invoke(null, player, input) as? String ?: input
-    }.getOrDefault(input)
 }
 
 public fun item(
