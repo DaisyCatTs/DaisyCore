@@ -3,9 +3,12 @@ package cat.daisy.scoreboard
 import cat.daisy.core.DaisyAudienceContext
 import cat.daisy.core.DaisyHandle
 import cat.daisy.core.runtime.DaisyRuntime
+import cat.daisy.item.DaisyViewerText
 import cat.daisy.placeholder.DaisyPlaceholderRegistry
+import cat.daisy.text.DaisyMessages
 import cat.daisy.text.DaisyText
 import cat.daisy.text.DaisyTextRenderer
+import cat.daisy.text.withPlaceholders
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -55,6 +58,10 @@ public interface DaisySidebarSession : AutoCloseable {
 
     public fun invalidate()
 
+    public fun invalidateAll() {
+        invalidate()
+    }
+
     public fun invalidate(vararg keys: String)
 
     public fun refreshNow()
@@ -96,8 +103,27 @@ public class DaisySidebarBuilder {
         titleRenderer = DaisyTextRenderer { component }
     }
 
+    public fun title(text: String) {
+        titleRenderer = DaisyTextRenderer { DaisyText.parse(text) }
+    }
+
     public fun title(renderer: DaisyTextRenderer<DaisySidebarRenderContext>) {
         titleRenderer = renderer
+    }
+
+    public fun titleLang(
+        key: String,
+        viewer: Player? = null,
+        vararg placeholders: Pair<String, Any?>,
+    ) {
+        titleRenderer =
+            DaisyTextRenderer { context ->
+                renderSidebarLang(
+                    key = key,
+                    viewer = viewer ?: context.player,
+                    placeholders = placeholders,
+                )
+            }
     }
 
     public fun line(
@@ -117,6 +143,16 @@ public class DaisySidebarBuilder {
         lines += DaisySidebarLine(key, renderer, visible)
     }
 
+    public fun line(
+        key: String,
+        block: DaisySidebarLineBuilder.() -> DaisyTextRenderer<DaisySidebarRenderContext>,
+    ) {
+        val builder = DaisySidebarLineBuilder()
+        val renderer = builder.block()
+        require(lines.none { it.key == key }) { "Duplicate sidebar key '$key'." }
+        lines += builder.build(key, renderer)
+    }
+
     public fun blank(key: String = "__blank_${blankCounter++}") {
         line(key, DaisyTextRenderer { DaisyText.plain(" ") })
     }
@@ -132,6 +168,44 @@ public class DaisySidebarBuilder {
 }
 
 public fun sidebar(block: DaisySidebarBuilder.() -> Unit): DaisySidebar = DaisySidebarBuilder().apply(block).build()
+
+public class DaisySidebarLineBuilder {
+    private var visiblePredicate: (DaisySidebarRenderContext) -> Boolean = { true }
+
+    public fun visible(predicate: (DaisySidebarRenderContext) -> Boolean) {
+        visiblePredicate = predicate
+    }
+
+    public fun text(component: Component): DaisyTextRenderer<DaisySidebarRenderContext> = DaisyTextRenderer { component }
+
+    public fun text(text: String): DaisyTextRenderer<DaisySidebarRenderContext> = DaisyTextRenderer { DaisyText.parse(text) }
+
+    public fun text(renderer: DaisyTextRenderer<DaisySidebarRenderContext>): DaisyTextRenderer<DaisySidebarRenderContext> = renderer
+
+    public fun lang(
+        key: String,
+        viewer: Player? = null,
+        vararg placeholders: Pair<String, Any?>,
+    ): DaisyTextRenderer<DaisySidebarRenderContext> = textLang(key, viewer, *placeholders)
+
+    public fun textLang(
+        key: String,
+        viewer: Player? = null,
+        vararg placeholders: Pair<String, Any?>,
+    ): DaisyTextRenderer<DaisySidebarRenderContext> =
+        DaisyTextRenderer { context ->
+            renderSidebarLang(
+                key = key,
+                viewer = viewer ?: context.player,
+                placeholders = placeholders,
+            )
+        }
+
+    internal fun build(
+        key: String,
+        renderer: DaisyTextRenderer<DaisySidebarRenderContext>,
+    ): DaisySidebarLine = DaisySidebarLine(key = key, renderer = renderer, visible = visiblePredicate)
+}
 
 public class DaisyScoreboardPlatformImpl(
     private val plugin: Plugin,
@@ -201,11 +275,19 @@ private class SidebarSessionImpl(
         if (closed) {
             return
         }
+        if (keys.isEmpty()) {
+            invalidateAll()
+            return
+        }
         val requested = keys.toSet()
         runtime.scheduler.main {
-            renderVisibleLines()
-                .filter { it.key in requested }
-                .forEachIndexed(::renderLine)
+            val visibleLines = renderVisibleLines()
+            val visibleKeys = visibleLines.map(DaisySidebarLine::key).toSet()
+            clearHiddenLines(keep = visibleKeys)
+            visibleLines
+                .withIndex()
+                .filter { it.value.key in requested }
+                .forEach { (index, line) -> renderLine(index, line) }
         }
     }
 
@@ -235,7 +317,7 @@ private class SidebarSessionImpl(
             return
         }
         objective.displayName(sidebar.title.render(context()))
-        scoreboard.teams.toList().forEach(Team::unregister)
+        clearHiddenLines(keep = emptySet())
         renderVisibleLines().forEachIndexed(::renderLine)
     }
 
@@ -253,10 +335,28 @@ private class SidebarSessionImpl(
 
     private fun renderVisibleLines(): List<DaisySidebarLine> = sidebar.lines.filter { it.visible(context()) }
 
+    private fun clearHiddenLines(keep: Set<String>) {
+        scoreboard.teams
+            .filter { it.name !in keep }
+            .forEach { team ->
+                team.entries.toList().forEach(scoreboard::resetScores)
+                team.unregister()
+            }
+    }
+
     private fun context(): DaisySidebarRenderContext =
         DaisySidebarRenderContext(
             player = player,
             audience = DaisyAudienceContext(player.uniqueId, Locale.ENGLISH, player.world.name),
             placeholders = placeholders,
         )
+}
+
+private fun renderSidebarLang(
+    key: String,
+    viewer: Player?,
+    placeholders: Array<out Pair<String, Any?>>,
+): Component {
+    val raw = DaisyMessages.resolve(key)?.withPlaceholders(*placeholders) ?: key.withPlaceholders(*placeholders)
+    return DaisyText.parse(DaisyViewerText.render(raw, viewer))
 }

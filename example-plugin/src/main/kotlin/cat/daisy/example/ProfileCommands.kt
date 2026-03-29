@@ -30,6 +30,8 @@ object ProfileCommands : DaisyCommandGroup({
                     closeOnClick()
                 }
             }
+            DaisyCoreExamplePlugin.platform.scoreboards?.show(player, profileSidebar(player))
+            DaisyCoreExamplePlugin.platform.tablists?.show(player, profileTablist(player))
         }
 
         subcommand("sync") {
@@ -41,6 +43,9 @@ object ProfileCommands : DaisyCommandGroup({
                         context = this,
                         success = { synced ->
                             replyLang("messages.profile.synced", "player" to synced)
+                            DaisyCoreExamplePlugin.platform.scoreboards?.session(player)?.invalidate("coins")
+                            DaisyCoreExamplePlugin.platform.tablists?.session(player)?.refreshNow()
+                            replyLang("messages.profile.sidebar-refreshed", "player" to synced)
                         },
                         failure = { error ->
                             failLang("messages.profile.error", "error" to error.message.orEmpty())
