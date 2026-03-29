@@ -1,33 +1,16 @@
 # DaisyCore
 
-DaisyCore is the one-library approach for Paper plugins. It brings commands, menus, scoreboards, tablists, text, placeholders, items, and runtime infrastructure into one Kotlin-first dependency while keeping the internal codebase modular.
+DaisyCore is the one-library approach for modern Paper plugins. It gives you commands, menus, scoreboards, tablists, text, placeholders, items, and runtime ownership behind one Kotlin-first dependency.
 
 ## Why DaisyCore
 
-- One main dependency for your server projects.
-- One consistent Kotlin-first API style across commands, menus, scoreboards, and tablists.
-- Internal module boundaries that keep the platform maintainable as it grows.
-- Adventure-first text handling and modern Paper-first design.
-- Shared runtime, placeholder, and item systems so features compose cleanly.
-- Auto-loaded command providers instead of per-plugin registration boilerplate.
+- One main dependency instead of stitching together separate command, menu, and UI libraries.
+- One consistent API style across commands, menus, sidebars, and tablists.
+- One platform owner through `DaisyPlatform`.
+- Shared text and message rendering through `messages(...)`.
+- Internal modules for maintainability without exposing users to fragmented setup.
 
-## Modules At A Glance
-
-| Module | Purpose |
-| --- | --- |
-| `platform-base` | Shared contracts, context, cleanup primitives |
-| `platform-runtime` | Lifecycle, scheduler, batching, shutdown coordination |
-| `platform-text` | Adventure + MiniMessage text layer |
-| `platform-placeholders` | Placeholder contracts and resolution pipeline |
-| `platform-items` | Item builders and item text helpers |
-| `platform-command` | Kotlin-first command system |
-| `platform-menu` | Menu/view framework |
-| `platform-scoreboard` | Sidebar, team, and objective runtime |
-| `platform-tablist` | Header/footer and tab view runtime |
-| `platform-packet` | Optional packet-backed transports |
-| `platform-all` | The umbrella artifact published as `DaisyCore` |
-
-## Installation
+## Install
 
 ```kotlin
 repositories {
@@ -37,7 +20,7 @@ repositories {
 }
 
 dependencies {
-    implementation("cat.daisy:DaisyCore:1.0.0")
+    implementation("cat.daisy:DaisyCore:0.1.0-SNAPSHOT")
 }
 ```
 
@@ -50,13 +33,11 @@ class MyPlugin : JavaPlugin() {
     override fun onEnable() {
         daisy =
             DaisyPlatform.create(this) {
-                text()
-                placeholders()
-                items()
-                scoreboards()
-                tablists()
+                messages(MyTextSource)
                 commands()
                 menus()
+                scoreboards()
+                tablists()
             }
     }
 
@@ -66,85 +47,124 @@ class MyPlugin : JavaPlugin() {
 }
 ```
 
-## Commands
+`messages(...)` is the current default path because it lets the same text source power commands, menus, sidebars, and tablists.
+
+## Current Default Style
+
+### Commands
 
 ```kotlin
 @DaisyCommandSet
-object IslandCommands : DaisyCommandProvider {
-    override fun commands(): List<DaisyCommand> =
-        listOf(
-            command("island") {
-                description("Island management")
+object ProfileCommands : DaisyCommandGroup({
+    command("profile") {
+        description("Open your profile")
 
-                sub("create") {
-                    executePlayer {
-                        reply("Island created.")
-                    }
-                }
-            },
-        )
+        player {
+            replyLang("messages.profile.opening", "player" to player.name)
+        }
+    }
+})
+```
+
+### Menus
+
+```kotlin
+player.openMenu(lang("menus.profile.title"), rows = 3) {
+    background(Material.GRAY_STAINED_GLASS_PANE) {
+        name(" ")
+    }
 }
 ```
 
-## Menus
+### Scoreboards
 
 ```kotlin
-val menu =
-    menu("Skyblock", rows = 3) {
-        slot(13) {
-            item(Material.GRASS_BLOCK) {
-                name = "Your Island"
-            }
-        }
+sidebar {
+    titleLang("sidebar.profile.title", viewer = player)
+    line("coins") {
+        textLang("sidebar.profile.coins", viewer = player, "coins" to "1,250")
     }
+}
 ```
 
-## Scoreboards
+### Tablists
 
 ```kotlin
-val sidebar =
-    sidebar {
-        title(DaisyText.plain("Skyblock"))
-        line("coins") { DaisyText.plain("Coins: 1,250") }
-        blank()
-        line("online") { DaisyText.plain("Online: 42") }
-    }
+tablist {
+    headerLang("tablist.profile.header", viewer = player, "player" to player.name)
+    footerLang("tablist.profile.footer", viewer = player, "coins" to "1,250")
+}
 ```
 
-## Tablists
+## What DaisyCore Means By “One Library”
 
-```kotlin
-val tab =
-    tablist {
-        header { DaisyText.plain("Welcome") }
-        footer { DaisyText.plain("docs.daisy.cat") }
-    }
+You depend on `DaisyCore` once. Internally, the repo is still split into modules like `platform-command`, `platform-menu`, `platform-scoreboard`, and `platform-tablist` so the codebase stays maintainable.
+
+Those internal module boundaries are an implementation detail. The user-facing story is:
+
+- one platform bootstrap
+- one shared text model
+- one dependency
+- one consistent Kotlin DSL style
+
+## Current Runtime Truths
+
+- Commands auto-load through runtime discovery today.
+- Menus are now inline-first by default, though reusable menu definitions still exist.
+- Sidebars are keyed and diff-friendly, with targeted invalidation as the main refresh pattern.
+- Tablists are currently header/footer-focused. DaisyCore does not claim richer tab entry formatting yet.
+
+## Example Plugin
+
+The canonical repo example lives in [`example-plugin`](./example-plugin).
+
+Start with:
+
+- [`DaisyCoreExamplePlugin.kt`](./example-plugin/src/main/kotlin/cat/daisy/example/DaisyCoreExamplePlugin.kt)
+- [`ProfileCommands.kt`](./example-plugin/src/main/kotlin/cat/daisy/example/ProfileCommands.kt)
+- [`ExampleProfileUi.kt`](./example-plugin/src/main/kotlin/cat/daisy/example/ExampleProfileUi.kt)
+- [`ExampleTextSource.kt`](./example-plugin/src/main/kotlin/cat/daisy/example/ExampleTextSource.kt)
+
+## Docs And Migration
+
+- Full docs: [docs.daisy.cat](https://docs.daisy.cat)
+- Repo migration guide: [MIGRATION.md](./MIGRATION.md)
+- Changelog: [CHANGELOG.md](./CHANGELOG.md)
+
+## Contributor Verification
+
+The repo has a broad CI task:
+
+```bash
+./gradlew quality
 ```
 
-## Runtime Principles
+For local work, narrower runs are often faster and more reliable:
 
-- Batch same-tick runtime work.
-- Diff render state before sending updates.
-- Prefer keyed invalidation over full redraws.
-- Keep optional packet support behind dedicated transports.
-- Guarantee deterministic shutdown and session cleanup.
+```bash
+./gradlew.bat --no-daemon :example-plugin:compileKotlin
+./gradlew.bat --no-daemon :platform-all:test --tests "cat.daisy.core.platform.DaisyPlatformBuilderTest"
+```
+
+When touching specific systems, prefer the module-level checks:
+
+```bash
+./gradlew.bat --no-daemon :platform-command:test --tests "cat.daisy.command.core.DaisyCommandsTest" --tests "cat.daisy.command.core.CommandAvailabilityTest"
+./gradlew.bat --no-daemon :platform-menu:test --tests "cat.daisy.menu.DaisyMenuCoreTest"
+./gradlew.bat --no-daemon :platform-scoreboard:test --tests "cat.daisy.scoreboard.DaisySidebarTest"
+./gradlew.bat --no-daemon :platform-tablist:test --tests "cat.daisy.tablist.DaisyTablistTest"
+```
+
+The command test stack already sets the JVM self-attach flag through Gradle config, so contributors do not need to add it manually.
 
 ## Status
 
-DaisyCore is now structured as one umbrella dependency backed by internal modules. Commands and menus have been consolidated into the repo, and the platform bootstrap, scoreboard runtime, and tablist runtime are in place for continued production hardening.
-
-## Documentation
-
-Documentation lives at [docs.daisy.cat](https://docs.daisy.cat). The docs repo is kept separately in `DaisyCoreDocs`.
-
-## Migration
-
-If you already use `DaisyCommand` or `DaisyMenu`, DaisyCore is the new home. Migration notes are tracked in [MIGRATION.md](MIGRATION.md) and expanded in the docs site.
+DaisyCore is a production-minded snapshot with the modern API direction already in place across commands, menus, text, scoreboards, and tablists. The current work is focused on product polish, migration clarity, and making the repo itself reflect the quality of the underlying API.
 
 ## Ecosystem Roadmap
 
-The next Daisy-owned utility layers are tracked in [DAISY_SUITE_ROADMAP.md](DAISY_SUITE_ROADMAP.md). That roadmap covers the planned DaisySeries/XSuite-style libraries that should grow on top of DaisyCore rather than beside it.
+Future Daisy-owned libraries such as DaisySeries are tracked in [DAISY_SUITE_ROADMAP.md](./DAISY_SUITE_ROADMAP.md).
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT. See [LICENSE](./LICENSE).
