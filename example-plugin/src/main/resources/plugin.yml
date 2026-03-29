@@ -2,3 +2,4 @@ name: DaisyCoreExample
 version: 0.1.0-SNAPSHOT
 main: cat.daisy.example.DaisyCoreExamplePlugin
 api-version: "1.21"
+description: Shows DaisyCore runtime ownership with commands, menus, sidebars, tablists, and shared text hooks.

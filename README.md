@@ -24,6 +24,8 @@ dependencies {
 }
 ```
 
+`0.1.0-SNAPSHOT` is intentional right now. DaisyCore is still in the suite polish phase even though the public API direction is already stable enough for real plugin work.
+
 ## Quick Start
 
 ```kotlin
@@ -49,6 +51,8 @@ class MyPlugin : JavaPlugin() {
 Strings in DaisyCore-facing text APIs are MiniMessage-first by default.
 
 Use `messages(...)` later when your plugin already keeps text in config or lang files and you want the same shared source to power commands, menus, sidebars, and tablists.
+
+If those config or lang files also need typed YAML, managed lifecycle, or module bundles, that ownership now belongs in DaisyConfig rather than DaisyCore.
 
 ## Current Default Style
 
@@ -180,8 +184,8 @@ The broader product split and end-state ecosystem goals are captured in [DAISY_E
 
 ## Related Projects
 
-- [DaisySeries](https://github.com/DaisyCatTs/DaisySeries): lightweight parser utilities for materials, sounds, item flags, canonical keys, and friendly display names
-- [DaisyConfig](https://github.com/DaisyCatTs/DaisyConfig): typed YAML config loading, reload-safe config handles, and DaisyCore-friendly text integration
+- [DaisySeries](https://github.com/DaisyCatTs/DaisySeries): modern Paper-first parser utilities for materials, sounds, item flags, canonical keys, and friendly display names
+- [DaisyConfig](https://github.com/DaisyCatTs/DaisyConfig): typed YAML, managed lifecycle, module bundles, and DaisyCore-friendly text integration
 
 ## License
 
