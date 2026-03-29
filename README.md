@@ -47,7 +47,9 @@ class MyPlugin : JavaPlugin() {
 }
 ```
 
-`messages(...)` is the current default path because it lets the same text source power commands, menus, sidebars, and tablists.
+Plain strings, MiniMessage strings, and `Component` values all work in normal DaisyCore flows.
+
+`messages(...)` is the scaling path when your plugin already keeps text in config or lang files and you want the same shared source to power commands, menus, sidebars, and tablists.
 
 ## Current Default Style
 
@@ -60,7 +62,7 @@ object ProfileCommands : DaisyCommandGroup({
         description("Open your profile")
 
         player {
-            replyLang("messages.profile.opening", "player" to player.name)
+            replyMm("<gradient:#7dd3fc:#c4b5fd>Opening your profile.</gradient>")
         }
     }
 })
@@ -69,7 +71,7 @@ object ProfileCommands : DaisyCommandGroup({
 ### Menus
 
 ```kotlin
-player.openMenu(lang("menus.profile.title"), rows = 3) {
+player.openMenu("Profile", rows = 3) {
     background(Material.GRAY_STAINED_GLASS_PANE) {
         name(" ")
     }
@@ -80,9 +82,9 @@ player.openMenu(lang("menus.profile.title"), rows = 3) {
 
 ```kotlin
 sidebar {
-    titleLang("sidebar.profile.title", viewer = player)
+    title("<gradient:#7dd3fc:#c4b5fd>Profile</gradient>")
     line("coins") {
-        textLang("sidebar.profile.coins", viewer = player, "coins" to "1,250")
+        text("<gray>Coins: <white>1,250</white>")
     }
 }
 ```
@@ -91,10 +93,12 @@ sidebar {
 
 ```kotlin
 tablist {
-    headerLang("tablist.profile.header", viewer = player, "player" to player.name)
-    footerLang("tablist.profile.footer", viewer = player, "coins" to "1,250")
+    header("<gradient:#7dd3fc:#c4b5fd>Welcome back</gradient>\n<white>${player.name}</white>")
+    footer("<gray>Coins: <white>1,250</white>")
 }
 ```
+
+If your plugin is config-heavy, swap those local strings for `replyLang(...)`, `lang(...)`, `titleLang(...)`, `headerLang(...)`, and the related helpers.
 
 ## What DaisyCore Means By “One Library”
 
@@ -132,6 +136,14 @@ Start with:
 - Changelog: [CHANGELOG.md](./CHANGELOG.md)
 
 ## Contributor Verification
+
+## IntelliJ Setup
+
+- Open the repo as a Gradle project in IntelliJ IDEA.
+- Use the checked-in Gradle wrapper.
+- Recommended JDK: Java 21.
+- The `example-plugin` module is the quickest place to understand the intended public API flow.
+- Use the Gradle tool window for targeted module runs when working on one subsystem at a time.
 
 The repo has a broad CI task:
 
