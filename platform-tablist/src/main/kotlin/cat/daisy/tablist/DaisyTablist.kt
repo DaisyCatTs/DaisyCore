@@ -3,8 +3,12 @@ package cat.daisy.tablist
 import cat.daisy.core.DaisyAudienceContext
 import cat.daisy.core.DaisyHandle
 import cat.daisy.core.runtime.DaisyRuntime
+import cat.daisy.item.DaisyViewerText
 import cat.daisy.placeholder.DaisyPlaceholderRegistry
+import cat.daisy.text.DaisyMessages
+import cat.daisy.text.DaisyText
 import cat.daisy.text.DaisyTextRenderer
+import cat.daisy.text.withPlaceholders
 import net.kyori.adventure.text.Component
 import org.bukkit.Bukkit
 import org.bukkit.entity.Player
@@ -74,12 +78,58 @@ public class DaisyTablistBuilder {
     private var footer: DaisyTextRenderer<DaisyTablistRenderContext>? = null
     private var options = DaisyTablistOptions()
 
+    public fun header(component: Component) {
+        header = DaisyTextRenderer { component }
+    }
+
+    public fun header(text: String) {
+        header = DaisyTextRenderer { DaisyText.parse(text) }
+    }
+
     public fun header(renderer: DaisyTextRenderer<DaisyTablistRenderContext>) {
         header = renderer
     }
 
+    public fun headerLang(
+        key: String,
+        viewer: Player? = null,
+        vararg placeholders: Pair<String, Any?>,
+    ) {
+        header =
+            DaisyTextRenderer { context ->
+                renderTablistLang(
+                    key = key,
+                    viewer = viewer ?: context.player,
+                    placeholders = placeholders,
+                )
+            }
+    }
+
+    public fun footer(component: Component) {
+        footer = DaisyTextRenderer { component }
+    }
+
+    public fun footer(text: String) {
+        footer = DaisyTextRenderer { DaisyText.parse(text) }
+    }
+
     public fun footer(renderer: DaisyTextRenderer<DaisyTablistRenderContext>) {
         footer = renderer
+    }
+
+    public fun footerLang(
+        key: String,
+        viewer: Player? = null,
+        vararg placeholders: Pair<String, Any?>,
+    ) {
+        footer =
+            DaisyTextRenderer { context ->
+                renderTablistLang(
+                    key = key,
+                    viewer = viewer ?: context.player,
+                    placeholders = placeholders,
+                )
+            }
     }
 
     public fun options(block: DaisyTablistOptionsBuilder.() -> Unit) {
@@ -177,11 +227,20 @@ private class TablistSessionImpl(
             DaisyTablistRenderContext(
                 player = player,
                 audience = DaisyAudienceContext(player.uniqueId, Locale.ENGLISH, player.world.name),
-                placeholders = placeholders,
-            )
+            placeholders = placeholders,
+        )
         player.sendPlayerListHeaderAndFooter(
             tablist.header?.render(context) ?: Component.empty(),
             tablist.footer?.render(context) ?: Component.empty(),
         )
     }
+}
+
+private fun renderTablistLang(
+    key: String,
+    viewer: Player?,
+    placeholders: Array<out Pair<String, Any?>>,
+): Component {
+    val raw = DaisyMessages.resolve(key)?.withPlaceholders(*placeholders) ?: key.withPlaceholders(*placeholders)
+    return DaisyText.parse(DaisyViewerText.render(raw, viewer))
 }

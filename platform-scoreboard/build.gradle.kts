@@ -7,4 +7,6 @@ dependencies {
     api(project(":platform-runtime"))
     api(project(":platform-text"))
     api(project(":platform-placeholders"))
+    implementation(project(":platform-items"))
+    testImplementation("org.mockito:mockito-inline:5.2.0")
 }
