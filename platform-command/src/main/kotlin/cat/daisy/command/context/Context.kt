@@ -52,6 +52,10 @@ open class CommandContext internal constructor(
         sendWithPrefix(message)
     }
 
+    @Deprecated(
+        message = "Strings are MiniMessage-first by default. Use reply(message).",
+        replaceWith = ReplaceWith("reply(message)"),
+    )
     fun replyMm(message: String) {
         sender.sendMessage(message.mm())
     }

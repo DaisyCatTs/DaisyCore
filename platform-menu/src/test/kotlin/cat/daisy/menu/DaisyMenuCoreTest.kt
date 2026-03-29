@@ -166,7 +166,7 @@ class DaisyMenuCoreTest {
 
                     slot(8) {
                         item = closer
-                        messageMm("<#f38ba8>Closed")
+                        message("<#f38ba8>Closed")
                         closeOnClick()
                     }
                 }
@@ -212,6 +212,28 @@ class DaisyMenuCoreTest {
             }
         } finally {
             DaisyMessages.clear()
+        }
+    }
+
+    @Test
+    fun `plainMessage keeps raw text as explicit escape hatch`() {
+        withMenuEnvironment { _, _, _, _, _ ->
+            val player = createPlayer("plain-click")
+            val sent = sentMessages(player)
+            val trigger = mock(ItemStack::class.java)
+            `when`(trigger.clone()).thenReturn(trigger)
+
+            val session =
+                player.openMenu(title = "Plain", rows = 1) {
+                    slot(0) {
+                        item = trigger
+                        plainMessage("<gray>Literal</gray>")
+                    }
+                }
+
+            session.handleTopClick(0, ClickType.LEFT)
+
+            assertTrue(sent.any { it == "<gray>Literal</gray>" })
         }
     }
 
@@ -330,6 +352,10 @@ class DaisyMenuCoreTest {
             messages += PlainTextComponentSerializer.plainText().serialize(it.getArgument<Component>(0))
             null
         }.`when`(player).sendMessage(org.mockito.ArgumentMatchers.any(Component::class.java))
+        doAnswer {
+            messages += it.getArgument<String>(0)
+            null
+        }.`when`(player).sendMessage(org.mockito.ArgumentMatchers.anyString())
         messageStore[player] = messages
         return player
     }
