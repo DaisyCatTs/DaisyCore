@@ -268,10 +268,20 @@ public class SlotBuilder {
 
     public fun message(text: String) {
         onClick {
+            player.sendMessage(text.mm())
+        }
+    }
+
+    public fun plainMessage(text: String) {
+        onClick {
             player.sendMessage(text)
         }
     }
 
+    @Deprecated(
+        message = "Strings are MiniMessage-first by default. Use message(text).",
+        replaceWith = ReplaceWith("message(text)"),
+    )
     public fun messageMm(text: String) {
         onClick {
             player.sendMessage(text.mm())

@@ -33,7 +33,6 @@ class MyPlugin : JavaPlugin() {
     override fun onEnable() {
         daisy =
             DaisyPlatform.create(this) {
-                messages(MyTextSource)
                 commands()
                 menus()
                 scoreboards()
@@ -47,9 +46,9 @@ class MyPlugin : JavaPlugin() {
 }
 ```
 
-Plain strings, MiniMessage strings, and `Component` values all work in normal DaisyCore flows.
+Strings in DaisyCore-facing text APIs are MiniMessage-first by default.
 
-`messages(...)` is the scaling path when your plugin already keeps text in config or lang files and you want the same shared source to power commands, menus, sidebars, and tablists.
+Use `messages(...)` later when your plugin already keeps text in config or lang files and you want the same shared source to power commands, menus, sidebars, and tablists.
 
 ## Current Default Style
 
@@ -62,7 +61,7 @@ object ProfileCommands : DaisyCommandGroup({
         description("Open your profile")
 
         player {
-            replyMm("<gradient:#7dd3fc:#c4b5fd>Opening your profile.</gradient>")
+            reply("<gradient:#7dd3fc:#c4b5fd>Opening your profile.</gradient>")
         }
     }
 })
