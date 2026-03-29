@@ -24,6 +24,9 @@ These need to be production-solid first because everything else should build on 
 
 ### Phase 2: DaisySeries
 
+Status:
+- started as a separate repo and product in the Daisy ecosystem
+
 This is the XSeries-style utility track.
 
 Recommended starting packages:
