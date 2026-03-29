@@ -182,6 +182,7 @@ The broader product split and end-state ecosystem goals are captured in [DAISY_E
 ## Related Projects
 
 - [DaisySeries](https://github.com/DaisyCatTs/DaisySeries): lightweight parser utilities for materials, sounds, item flags, canonical keys, and friendly display names
+- [DaisyConfig](https://github.com/DaisyCatTs/DaisyConfig): typed YAML config loading, reload-safe config handles, and DaisyCore-friendly text integration
 
 ## License
 
