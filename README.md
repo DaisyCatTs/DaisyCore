@@ -165,6 +165,10 @@ DaisyCore is a production-minded snapshot with the modern API direction already 
 
 Future Daisy-owned libraries such as DaisySeries are tracked in [DAISY_SUITE_ROADMAP.md](./DAISY_SUITE_ROADMAP.md).
 
+## Related Projects
+
+- [DaisySeries](https://github.com/DaisyCatTs/DaisySeries): lightweight parser utilities for materials, sounds, item flags, canonical keys, and friendly display names
+
 ## License
 
 MIT. See [LICENSE](./LICENSE).
